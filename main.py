@@ -1,5 +1,3 @@
-print('Hello World!!!')
-
 a = 8
 b = 3
 
