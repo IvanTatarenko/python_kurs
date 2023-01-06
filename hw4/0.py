@@ -1,4 +1,4 @@
-password = input('Введіть пароль ')
+password = input('Введіть пароль: ')
 
 counts = 0
 letter_big = False
@@ -11,7 +11,7 @@ for i in password:
   if (i.isupper() == True): letter_big = True
   if (i.islower() == True): letter_small = True
   if (i.isnumeric() == True): letter_number = True
-  if (i.isnumeric() == False and  i.isalpha() == False): letter_special = True
+  if (i.isnumeric() == False and i.isalpha() == False): letter_special = True
 
 if (counts >= 12 and letter_big == True and letter_small == True and letter_number == True and letter_special == True):
   print('Пароль прийнято')
