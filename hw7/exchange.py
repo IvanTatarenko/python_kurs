@@ -30,7 +30,10 @@ result_buy = {
   'amount_more': 0.0,
   'result_buy_more': 0.0,
   'offer_less': False,
-  'enough_money': False
+  'remain_less': 0.0,
+  'result_buy_less': 0.0,
+  'enough_money': False,
+  'bills_ok': True
 }
 result_sell = {
   'currency': 'USD',
@@ -47,12 +50,19 @@ def offer():
   remain_currency = result_buy['remain'] / AUH_BUY[result_buy['currency']]
   if((remain_currency + result_buy['currency_value'] + closeness_index)//ALIQUIT_INDEX > result_buy['currency_value']//ALIQUIT_INDEX):
     result_buy['result_buy_more'] = (result_buy['currency_value']//ALIQUIT_INDEX + 1.0) * ALIQUIT_INDEX
-    result_buy['amount_more'] = (result_buy['result_buy_more'] - result_buy['currency_value'])/AUH_BUY[result_buy['currency']]
+    result_buy['amount_more'] = ((result_buy['result_buy_more'] - result_buy['currency_value'])*AUH_BUY[result_buy['currency']])-result_buy['remain']
     result_buy['offer_more'] = True
   elif((remain_currency + result_buy['currency_value'] - closeness_index)//ALIQUIT_INDEX < result_buy['currency_value']//ALIQUIT_INDEX):
-    result_buy['offer_less'] = True
+    result_buy["result_buy_less"] = ((remain_currency + result_buy['currency_value'])//ALIQUIT_INDEX)*AUH_BUY[result_buy['currency']]
+    result_buy['remain_less'] = result_buy['remain'] + ((result_buy['currency_value'] - result_buy["result_buy_less"]) * AUH_BUY[result_buy['currency']])
+    if((remain_currency + result_buy['currency_value'])//ALIQUIT_INDEX) == 0.0:
+      result_buy['offer_less'] = False
+    else:
+      result_buy['offer_less'] = True
+    
+    
   
-#Підрахунок грошей в касі
+# Підрахунок грошей в касі
 def bank_val():
   bank_sum = 0
   for i in bank[result_buy['currency']]:
@@ -60,7 +70,28 @@ def bank_val():
   result_buy['bank_sum'] = bank_sum
   if(result_buy['currency_value'] < bank_sum):
     result_buy['enough_money'] = True
+ 
+
+# Перевірка наявності потрібних купюр в касі
+def count_bills(currency):
+  res = result_buy['currency_value']
+  for i in bank[currency]:
+    bills = bank[currency][i]
+    while (bills > 0 and res > 0):
+      res -= i
+      if(res < 0):
+        res += i
+        break
+      bills -= 1
+  if(res > 0):
+    result_buy['bills_ok'] = False
+  else:
+    result_buy['bills_ok'] = True
   
+  
+
+
+
 #Вивід курсів валют
 print(f"{'':*^17}")
 print(f"*{'BUY':^5}{'':5}{'SELL':^5}*")
@@ -79,15 +110,46 @@ def buy(currency):
   result_buy['remain'] = result_buy['auh_value'] % AUH_BUY[currency]
   bank_val()
   if(result_buy['enough_money']):
-    print(f"Ваша валюта {result_buy['currency_value']:>9.2f} {currency}")
-    print(f"Ваша решта {result_buy['remain']:>10.2f} UAH")
-    offer()
-    if(result_buy['offer_more']):
-      input_buy_more = input(f'Чи бажаете внести { result_buy["amount_more"] } грн щоб отримати рівно {result_buy["result_buy_more"]} дол?(Y/N):')
-    elif(result_buy['offer_less']):
-      pass
+    count_bills(result_buy['currency'])
+    if(result_buy['bills_ok']):
+      print(f"Ваша валюта {result_buy['currency_value']:>9.2f} {currency}")
+      print(f"Ваша решта {result_buy['remain']:>10.2f} UAH")
+      offer()
+      if(result_buy['offer_more']):
+        input_buy_more = input(f'Чи бажаете внести { result_buy["amount_more"] } грн щоб отримати рівно {result_buy["result_buy_more"]} дол?(Т/Н):')
+        if(input_buy_more == 'Y' or input_buy_more == 'y' or input_buy_more == 'Т' or input_buy_more == 'т'):
+          print(f'Внесіть суму до плати: { result_buy["amount_more"] } грн')
+          count_bills(result_buy['currency'])
+          if(result_buy['bills_ok']):
+            print(f"Ваша валюта {result_buy['result_buy_more']:>9.2f} {currency}")
+            print(f"Ваша решта {0.00:>10.2f} UAH")
+          else:
+            print(f'Відстуні підходящі купюри {currency} в касі:(')
+        elif(input_buy_more == 'N' or input_buy_more == 'n' or input_buy_more == 'Н' or input_buy_more == 'н'):
+          print(f"Ваша валюта {result_buy['currency_value']:>9.2f} {currency}")
+          print(f"Ваша решта {result_buy['remain']:>10.2f} UAH")
+        else:
+          print('Помилка вводу')
+      elif(result_buy['offer_less']):
+        input_buy_less = input(f'Чи бажаєте купити рівно {result_buy["result_buy_less"]} дол?(Т/Н):')
+        if(input_buy_less == 'Y' or input_buy_less == 'y' or input_buy_less == 'Т' or input_buy_less == 'т'):
+          count_bills(result_buy['currency'])
+          if(result_buy['bills_ok']):
+            print(f"Ваша валюта {result_buy['result_buy_less']:>9.2f} {currency}")
+            print(f"Ваша решта {result_buy['remain_less']:>10.2f} UAH")
+          else:
+            print(f'Відстуні підходящі купюри {currency} в касі:(')
+        elif(input_buy_less == 'N' or input_buy_less == 'n' or input_buy_less == 'Н' or input_buy_less == 'н'):
+          print(f"Ваша валюта {result_buy['currency_value']:>9.2f} {currency}")
+          print(f"Ваша решта {result_buy['remain']:>10.2f} UAH")
+        else:
+          print('Помилка вводу')
+      
+      else:
+        print('Гарного дня!')
     else:
-      print('Гарного дня!')
+      print(f'Відстуні підходящі купюри {currency} в касі:(')
+    
   # Не вситачає грошей
   else:
     input_buy = input(f'В обміннику не вистачає грошей. Можемо запропонувати {result_buy["bank_sum"]} {currency}?(Т/Н)')
@@ -117,40 +179,6 @@ else:
 
 
 
-# def buy():
-  
-  
-
-
-#     elif auto_index_more <= closeness_index:
-#       result_buy_more = buy_calculations['result'] + auto_index_more + remain_usd
-#       surcharge_amount = auto_index_more * AUH_BUY['USD']
-#       input_buy_more = input(f'Чи бажаете внести { surcharge_amount } грн щоб отримати рівно {result_buy_more} дол?(Y/N):')
-    
-#       if input_buy_more == 'Y' or input_buy_more == 'y':
-#         print(f'Внесіть суму до плати: { surcharge_amount } грн')
-#         print(f"Ваша валюта {result_buy_more:.2f} дол")
-#         print(f"Ваша решта 0 грн")
-#       elif input_buy_more == 'N' or input_buy_more == 'n':
-#         print(f"Ваша валюта {buy_calculations['result']:>9.2f} дол")
-#         print(f"Ваша решта {remain:>10.2f} грн")
-#       else:
-#         print('Помилка вводу')
-#     elif auto_index_less <= closeness_index: 
-#       additional_buy = buy_calculations['result'] - auto_index_less
-#       input_buy_less = input(f'Чи бажаєте купити рівно {additional_buy} дол?(Y/N):')
-#       if input_buy_less == 'Y' or input_buy_less == 'y':
-#         usd_remain = auto_index_less * AUH_BUY['USD'] + remain
-#         print(f"Ваша валюта {additional_buy:>9.2f} дол")
-#         print(f"Ваша решта {usd_remain:>10.2f} грн")
-#       elif input_buy_less == 'N' or input_buy_less == 'n':
-#         print(f"Ваша валюта {buy_calculations['result']:>9.2f} дол")
-#         print(f"Ваша решта {remain:>10.2f} грн")
-#       else:
-#         print('Помилка вводу')
-#   else:
-#     print("Недостатньо грошей в касі")
-  
   
 
 
