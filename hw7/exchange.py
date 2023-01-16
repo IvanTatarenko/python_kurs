@@ -17,7 +17,18 @@ bank = {
     10: 10, 
     5:0, 
     1:0
-  }
+  },
+  "UAH": {
+    1000: 5,
+    500: 10,
+    200: 50,
+    100 : 90, 
+    50: 20, 
+    10: 10, 
+    5:0, 
+    1:0
+  },
+  
 }
 
 result_buy = {
@@ -52,7 +63,7 @@ def offer():
     result_buy['result_buy_more'] = (result_buy['currency_value']//ALIQUIT_INDEX + 1.0) * ALIQUIT_INDEX
     result_buy['amount_more'] = ((result_buy['result_buy_more'] - result_buy['currency_value'])*AUH_BUY[result_buy['currency']])-result_buy['remain']
     result_buy['offer_more'] = True
-  elif((remain_currency + result_buy['currency_value'] - closeness_index)//ALIQUIT_INDEX < result_buy['currency_value']//ALIQUIT_INDEX):
+  elif((remain_currency + result_buy['currency_value'] - closeness_index)//ALIQUIT_INDEX < result_buy['currency_value']//ALIQUIT_INDEX and result_buy['currency_value'] % ALIQUIT_INDEX != 0):
     result_buy["result_buy_less"] = ((remain_currency + result_buy['currency_value'])//ALIQUIT_INDEX)*AUH_BUY[result_buy['currency']]
     result_buy['remain_less'] = result_buy['remain'] + ((result_buy['currency_value'] - result_buy["result_buy_less"]) * AUH_BUY[result_buy['currency']])
     if((remain_currency + result_buy['currency_value'])//ALIQUIT_INDEX) == 0.0:
@@ -63,12 +74,12 @@ def offer():
     
   
 # Підрахунок грошей в касі
-def bank_val():
+def bank_val(currency):
   bank_sum = 0
-  for i in bank[result_buy['currency']]:
-    bank_sum += (i * bank[result_buy['currency']][i])
+  for i in bank[currency]:
+    bank_sum += (i * bank[currency][i])
   result_buy['bank_sum'] = bank_sum
-  if(result_buy['currency_value'] < bank_sum):
+  if(result_buy['currency_value'] <= bank_sum):
     result_buy['enough_money'] = True
  
 
@@ -92,14 +103,14 @@ def count_bills(currency):
 
 
 
-#Вивід курсів валют
+# Вивід курсів валют
 print(f"{'':*^17}")
 print(f"*{'BUY':^5}{'':5}{'SELL':^5}*")
 for i in AUH_BUY:
   print(f"*{AUH_BUY[i]:<6.2f}{i:^3}{AUH_CELL[i]:>6.2f}*")
 print(f"{'':*^17}")
 
-print(result_buy)
+
 
 operation_selection = input("Ви бажаєте купити чи продати долари?(купити/продати)")
 
@@ -108,7 +119,7 @@ def buy(currency):
   result_buy['auh_value'] = float(input(f"Введіть кількість гривень, яку ви хочете обміняти на {currency}: "))
   result_buy['currency_value'] = result_buy['auh_value'] // AUH_BUY[currency]
   result_buy['remain'] = result_buy['auh_value'] % AUH_BUY[currency]
-  bank_val()
+  bank_val(result_buy['currency'])
   if(result_buy['enough_money']):
     count_bills(result_buy['currency'])
     if(result_buy['bills_ok']):
@@ -130,8 +141,9 @@ def buy(currency):
           print(f"Ваша решта {result_buy['remain']:>10.2f} UAH")
         else:
           print('Помилка вводу')
+        
       elif(result_buy['offer_less']):
-        input_buy_less = input(f'Чи бажаєте купити рівно {result_buy["result_buy_less"]} дол?(Т/Н):')
+        input_buy_less = input(f'Чи бажаєте купити рівно {result_buy["result_buy_less"]} USD?(Т/Н):')
         if(input_buy_less == 'Y' or input_buy_less == 'y' or input_buy_less == 'Т' or input_buy_less == 'т'):
           count_bills(result_buy['currency'])
           if(result_buy['bills_ok']):
@@ -166,13 +178,27 @@ def buy(currency):
 # продаж
 def sell(currency):
   value = float(input(f"Введіть кількість {currency}, яку ви хочете продати: "))
-  result_sell['value'] = value *AUH_CELL[currency]
+  result_buy['currency_value'] = value *AUH_CELL[currency]
+  bank_val('UAH')
+  if(result_buy['enough_money']):
+    print(f"Ви отримуєте {result_buy['currency_value']:>8.2f} грн")
+  else:
+    input_buy = input(f'В обміннику не вистачає грошей. Можемо запропонувати {result_buy["bank_sum"]} UAH?(Т/Н)')
+    if input_buy == 'Y' or input_buy == 'y' or input_buy == 'Т' or input_buy == 'т':
+      result_buy['remain'] = (result_buy['currency_value'] - result_buy['bank_sum']) / AUH_CELL[currency]
+      print(f"Ви отримуєте {result_buy['bank_sum']:>8.2f} UAH")
+      print(f"Ваша решта {result_buy['remain']:>10.2f} USD")
+    elif input_buy == 'N' or input_buy == 'n' or input_buy == 'Н' or input_buy == 'н':
+      print('Гарного дня!')
+    else:
+      print('Помилка вводу')
+  
 
 if operation_selection == 'купити' or operation_selection == 'regbnb':
   buy(result_buy['currency']) 
 elif operation_selection == 'продати' or operation_selection == 'ghjlfnb':
   sell(result_sell['currency'])
-  print(f"Ви отримуєте {result_sell['value']:>8.2f} грн")
+  
 else:
   print('Помилка вводу')
 
